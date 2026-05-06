@@ -77,8 +77,8 @@ export default function ComparisonPage() {
 
     return {
       revenue: [
-        { name: 'Anterior', total: data.previousPeriod.totalRevenue },
-        { name: 'Atual', total: data.currentPeriod.totalRevenue },
+        { name: 'Comparado', total: data.previousPeriod.totalRevenue },
+        { name: 'Analisado', total: data.currentPeriod.totalRevenue },
       ],
       sales: [
         { name: 'Comparado', total: data.previousPeriod.totalSales },
@@ -133,6 +133,22 @@ export default function ComparisonPage() {
     { key: 'revenueGrowth' as const, label: 'Vs periodo anterior', render: (value: number) => renderGrowth(value) },
   ];
 
+  const lostClientColumns = [
+    { key: 'name' as const, label: 'Cliente perdido', width: '28%' },
+    { key: 'lastPurchaseDate' as const, label: 'Ultima compra no comparado', render: (value: string) => formatDate(value) },
+    { key: 'previousSales' as const, label: 'Compras no comparado', render: (value: number) => value },
+    { key: 'previousRevenue' as const, label: 'Faturamento perdido', render: (value: number) => formatCurrency(value) },
+    { key: 'revenueGrowth' as const, label: 'Variacao', render: (value: number) => renderGrowth(value) },
+  ];
+
+  const clientGrowthColumns = [
+    { key: 'name' as const, label: 'Cliente', width: '26%' },
+    { key: 'previousRevenue' as const, label: 'Faturamento comparado', render: (value: number) => formatCurrency(value) },
+    { key: 'revenue' as const, label: 'Faturamento analisado', render: (value: number) => formatCurrency(value) },
+    { key: 'revenueGrowth' as const, label: 'Crescimento', render: (value: number) => renderGrowth(value) },
+    { key: 'salesGrowth' as const, label: 'Evolucao compras', render: (value: number) => renderGrowth(value) },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -166,8 +182,15 @@ export default function ComparisonPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <KpiCard title="Clientes novos" value={data.summary.newClients} subtitle={`Faturamento: ${formatCurrency(data.summary.newClientsRevenue)}`} />
             <KpiCard title="Clientes recorrentes" value={data.summary.recurringClients} subtitle={`Faturamento: ${formatCurrency(data.summary.recurringRevenue)}`} />
+            <KpiCard title="Clientes perdidos" value={data.summary.lostClients} subtitle={`Faturamento perdido: ${formatCurrency(data.summary.lostClientsRevenue)}`} />
             <KpiCard title="Clientes com recompra" value={data.summary.repeatClients} subtitle={`Taxa: ${formatPercentage(data.summary.repeatRate)}`} />
-            <KpiCard title="Clientes totais" value={data.summary.totalClients} subtitle="Clientes ativos no periodo" />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <KpiCard title="Clientes em crescimento" value={data.summary.growingClients} subtitle="Compraram mais no periodo analisado" />
+            <KpiCard title="Clientes em queda" value={data.summary.decliningClients} subtitle="Compraram menos no periodo analisado" />
+            <KpiCard title="Clientes estaveis" value={data.summary.stableClients} subtitle="Mesmo faturamento entre os periodos" />
+            <KpiCard title="Clientes totais" value={data.summary.totalClients} subtitle="Clientes ativos no periodo analisado" />
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -273,8 +296,10 @@ export default function ComparisonPage() {
 
           <DataTable<ComparisonRankingItem> data={data.sellerRanking} columns={sellerColumns} title="Ranking de vendedores no periodo" />
           <DataTable<ComparisonRankingItem> data={data.productRanking} columns={productColumns} title="Ranking de produtos no periodo" />
+          <DataTable<ComparisonClientItem> data={data.clientGrowthList} columns={clientGrowthColumns} title="Crescimento de clientes entre os dois periodos" />
           <DataTable<ComparisonClientItem> data={data.newClientsList} columns={newClientColumns} title="Clientes novos e primeira compra no periodo" />
           <DataTable<ComparisonClientItem> data={data.recurringClientsList} columns={recurringClientColumns} title="Clientes recorrentes no periodo" />
+          <DataTable<ComparisonClientItem> data={data.lostClientsList} columns={lostClientColumns} title="Clientes perdidos entre os periodos" />
         </>
       )}
     </div>

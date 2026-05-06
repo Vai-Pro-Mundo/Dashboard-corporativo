@@ -43,11 +43,19 @@ export async function GET(req: NextRequest) {
     const recurringClientsList = currentClientDetails.filter(
       (client) => parseLocalDate(client.firstPurchaseDate).getTime() < startDate.getTime()
     );
+    const lostClientsList = buildLostClients(previousSales, currentSales, firstPurchaseByClient);
+    const clientGrowthList = currentClientDetails
+      .filter((client) => client.previousSales > 0)
+      .sort((a, b) => b.revenueGrowth - a.revenueGrowth);
 
     const totalClients = currentClientDetails.length;
     const repeatClients = countRepeatClients(currentSales);
     const newClientsRevenue = sumRevenue(newClientsList);
     const recurringRevenue = sumRevenue(recurringClientsList);
+    const lostClientsRevenue = sumRevenue(lostClientsList);
+    const growingClients = clientGrowthList.filter((client) => client.revenueGrowth > 0).length;
+    const decliningClients = clientGrowthList.filter((client) => client.revenueGrowth < 0).length;
+    const stableClients = clientGrowthList.filter((client) => client.revenueGrowth === 0).length;
 
     const response: ComparisonData = {
       period: `${toDateKey(startDate)} a ${toDateKey(endDate)}`,
@@ -77,10 +85,15 @@ export async function GET(req: NextRequest) {
         totalClients,
         newClients: newClientsList.length,
         recurringClients: recurringClientsList.length,
+        lostClients: lostClientsList.length,
         repeatClients,
         repeatRate: totalClients > 0 ? Number(((repeatClients / totalClients) * 100).toFixed(2)) : 0,
         newClientsRevenue: Number(newClientsRevenue.toFixed(2)),
         recurringRevenue: Number(recurringRevenue.toFixed(2)),
+        lostClientsRevenue: Number(lostClientsRevenue.toFixed(2)),
+        growingClients,
+        decliningClients,
+        stableClients,
       },
       topSeller: sellerRanking[0] || null,
       topProduct: productRanking[0] || null,
@@ -89,9 +102,12 @@ export async function GET(req: NextRequest) {
       productRanking,
       newClientsList,
       recurringClientsList,
+      lostClientsList,
+      clientGrowthList,
       clientMix: [
         { name: 'Novos', value: newClientsList.length, revenue: Number(newClientsRevenue.toFixed(2)) },
         { name: 'Recorrentes', value: recurringClientsList.length, revenue: Number(recurringRevenue.toFixed(2)) },
+        { name: 'Perdidos', value: lostClientsList.length, revenue: Number(lostClientsRevenue.toFixed(2)) },
       ],
     };
 
@@ -218,6 +234,39 @@ function buildCurrentClientDetails(
       };
     })
     .sort((a, b) => b.revenue - a.revenue);
+}
+
+function buildLostClients(
+  previousSales: SalesRecord[],
+  currentSales: SalesRecord[],
+  firstPurchaseByClient: Map<string, string>
+): ComparisonClientItem[] {
+  const previousMap = buildAggregationMap(previousSales, (sale) => sale.client);
+  const currentClientNames = new Set(currentSales.map((sale) => sale.client));
+  const lastPurchaseByClient = new Map<string, string>();
+
+  for (const sale of previousSales) {
+    const current = lastPurchaseByClient.get(sale.client);
+    if (!current || new Date(sale.date).getTime() > new Date(current).getTime()) {
+      lastPurchaseByClient.set(sale.client, sale.date);
+    }
+  }
+
+  return Array.from(previousMap.entries())
+    .filter(([name]) => !currentClientNames.has(name))
+    .map(([name, previous]) => ({
+      name,
+      sales: 0,
+      revenue: 0,
+      share: 0,
+      previousSales: previous.sales,
+      previousRevenue: Number(previous.revenue.toFixed(2)),
+      salesGrowth: -100,
+      revenueGrowth: -100,
+      firstPurchaseDate: toDateKey(parseSheetLikeDate(firstPurchaseByClient.get(name) || lastPurchaseByClient.get(name) || new Date().toISOString())),
+      lastPurchaseDate: toDateKey(parseSheetLikeDate(lastPurchaseByClient.get(name) || new Date().toISOString())),
+    }))
+    .sort((a, b) => b.previousRevenue - a.previousRevenue);
 }
 
 function buildAggregationMap(items: SalesRecord[], getKey: (sale: SalesRecord) => string) {

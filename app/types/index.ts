@@ -136,10 +136,15 @@ export interface ComparisonData {
     totalClients: number;
     newClients: number;
     recurringClients: number;
+    lostClients: number;
     repeatClients: number;
     repeatRate: number;
     newClientsRevenue: number;
     recurringRevenue: number;
+    lostClientsRevenue: number;
+    growingClients: number;
+    decliningClients: number;
+    stableClients: number;
   };
   topSeller: ComparisonRankingItem | null;
   topProduct: ComparisonRankingItem | null;
@@ -148,6 +153,8 @@ export interface ComparisonData {
   productRanking: ComparisonRankingItem[];
   newClientsList: ComparisonClientItem[];
   recurringClientsList: ComparisonClientItem[];
+  lostClientsList: ComparisonClientItem[];
+  clientGrowthList: ComparisonClientItem[];
   clientMix: Array<{ name: string; value: number; revenue: number }>;
 }
 
