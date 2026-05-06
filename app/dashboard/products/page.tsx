@@ -44,12 +44,14 @@ export default function ProductsPage() {
 
   const summary = useMemo(() => {
     const totalRevenue = data.reduce((sum, product) => sum + product.totalRevenue, 0);
+    const totalIncome = data.reduce((sum, product) => sum + product.totalIncome, 0);
     const totalSales = data.reduce((sum, product) => sum + product.totalSales, 0);
     const unitsSold = data.reduce((sum, product) => sum + product.unitsSold, 0);
     const topProduct = data[0];
 
     return {
       totalRevenue,
+      totalIncome,
       totalSales,
       unitsSold,
       avgPrice: totalSales > 0 ? totalRevenue / totalSales : 0,
@@ -60,36 +62,18 @@ export default function ProductsPage() {
   const chartData = data.slice(0, 10).map((product) => ({
     name: product.name.length > 22 ? `${product.name.slice(0, 22)}...` : product.name,
     faturamento: product.totalRevenue,
+    receita: product.totalIncome,
     vendas: product.totalSales,
   }));
 
   const columns = [
-    { key: 'name' as const, label: 'Nome do Produto', width: '30%' },
-    {
-      key: 'totalSales' as const,
-      label: 'Total de Vendas',
-      render: (value: number) => value,
-    },
-    {
-      key: 'totalRevenue' as const,
-      label: 'Receita Total',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'avgPrice' as const,
-      label: 'Preço Médio',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'unitsSold' as const,
-      label: 'Unidades Vendidas',
-      render: (value: number) => value,
-    },
-    {
-      key: 'lastSaleDate' as const,
-      label: 'Última Venda',
-      render: (value: Date) => formatDate(value),
-    },
+    { key: 'name' as const, label: 'Nome do Produto', width: '26%' },
+    { key: 'totalSales' as const, label: 'Total de Vendas', render: (value: number) => value },
+    { key: 'totalRevenue' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
+    { key: 'totalIncome' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'avgPrice' as const, label: 'Preco Medio', render: (value: number) => formatCurrency(value) },
+    { key: 'unitsSold' as const, label: 'Unidades Vendidas', render: (value: number) => value },
+    { key: 'lastSaleDate' as const, label: 'Ultima Venda', render: (value: Date) => formatDate(value) },
   ];
 
   return (
@@ -101,7 +85,7 @@ export default function ProductsPage() {
 
       <DateRangePicker onDateChange={setDateRange} defaultStartDate={startDate} defaultEndDate={endDate} />
 
-      {loading && <div className="text-center py-8 text-cyan-100/70">Carregando dados...</div>}
+      {loading && <div className="py-8 text-center text-cyan-100/70">Carregando dados...</div>}
       {error && <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">{error}</div>}
 
       {!loading && !error && (
@@ -109,29 +93,27 @@ export default function ProductsPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <KpiCard title="Produtos" value={data.length} subtitle="Itens vendidos" />
             <KpiCard title="Vendas" value={summary.totalSales} subtitle={`${summary.unitsSold} unidades`} />
-            <KpiCard title="Faturamento" value={formatCurrency(summary.totalRevenue)} subtitle={`Média: ${formatCurrency(summary.avgPrice)}`} />
+            <KpiCard title="Faturamento" value={formatCurrency(summary.totalRevenue)} subtitle={`Media: ${formatCurrency(summary.avgPrice)}`} />
+            <KpiCard title="Receita" value={formatCurrency(summary.totalIncome)} subtitle="Receita total no periodo" />
             <KpiCard
-              title="Produto Líder"
+              title="Produto Lider"
               value={summary.topProduct?.name || '-'}
               subtitle={summary.topProduct ? formatCurrency(summary.topProduct.totalRevenue) : 'Sem dados'}
-              className="md:col-span-2"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <BarChartComponent
               data={chartData}
-              title="Top produtos por faturamento"
-              bars={[{ key: 'faturamento', label: 'Faturamento', color: '#10B981' }]}
+              title="Top produtos por faturamento e receita"
+              bars={[
+                { key: 'faturamento', label: 'Faturamento', color: '#10B981', yAxisId: 'left' },
+                { key: 'receita', label: 'Receita', color: '#FBBF24', yAxisId: 'right' },
+              ]}
               formatYAxis="currency"
               height={350}
             />
-            <BarChartComponent
-              data={chartData}
-              title="Top produtos por volume"
-              bars={[{ key: 'vendas', label: 'Vendas', color: '#38BDF8' }]}
-              height={350}
-            />
+            <BarChartComponent data={chartData} title="Top produtos por volume" bars={[{ key: 'vendas', label: 'Vendas', color: '#38BDF8' }]} height={350} />
           </div>
 
           <DataTable data={data} columns={columns} title={`Total: ${data.length} produtos`} />

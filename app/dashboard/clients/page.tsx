@@ -44,11 +44,13 @@ export default function ClientsPage() {
 
   const summary = useMemo(() => {
     const totalSpent = data.reduce((sum, client) => sum + client.totalSpent, 0);
+    const totalIncome = data.reduce((sum, client) => sum + client.totalIncome, 0);
     const totalPurchases = data.reduce((sum, client) => sum + client.totalPurchases, 0);
     const topClient = data[0];
 
     return {
       totalSpent,
+      totalIncome,
       totalPurchases,
       avgTicket: totalPurchases > 0 ? totalSpent / totalPurchases : 0,
       topClient,
@@ -58,77 +60,54 @@ export default function ClientsPage() {
   const chartData = data.slice(0, 10).map((client) => ({
     name: client.name.length > 24 ? `${client.name.slice(0, 24)}...` : client.name,
     faturamento: client.totalSpent,
+    receita: client.totalIncome,
     compras: client.totalPurchases,
   }));
 
   const columns = [
-    { key: 'name' as const, label: 'Nome do Cliente', width: '25%' },
-    {
-      key: 'totalPurchases' as const,
-      label: 'Total de Compras',
-      render: (value: number) => value,
-    },
-    {
-      key: 'totalSpent' as const,
-      label: 'Gasto Total',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'avgTicket' as const,
-      label: 'Ticket Médio',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'productsCount' as const,
-      label: 'Produtos Diferentes',
-      render: (value: number) => value,
-    },
-    {
-      key: 'lastPurchaseDate' as const,
-      label: 'Última Compra',
-      render: (value: Date) => formatDate(value),
-    },
+    { key: 'name' as const, label: 'Nome do Cliente', width: '24%' },
+    { key: 'totalPurchases' as const, label: 'Total de Compras', render: (value: number) => value },
+    { key: 'totalSpent' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
+    { key: 'totalIncome' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'avgTicket' as const, label: 'Ticket Medio', render: (value: number) => formatCurrency(value) },
+    { key: 'productsCount' as const, label: 'Produtos Diferentes', render: (value: number) => value },
+    { key: 'lastPurchaseDate' as const, label: 'Ultima Compra', render: (value: Date) => formatDate(value) },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-300">Análise comercial</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-300">Analise comercial</p>
         <h1 className="mt-1 text-3xl font-bold text-white">Clientes</h1>
       </div>
 
       <DateRangePicker onDateChange={setDateRange} defaultStartDate={startDate} defaultEndDate={endDate} />
 
-      {loading && <div className="text-center py-8 text-cyan-100/70">Carregando dados...</div>}
+      {loading && <div className="py-8 text-center text-cyan-100/70">Carregando dados...</div>}
       {error && <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">{error}</div>}
 
       {!loading && !error && (
         <>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <KpiCard title="Clientes" value={data.length} subtitle="Pagantes únicos no período" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <KpiCard title="Clientes" value={data.length} subtitle="Pagantes unicos no periodo" />
             <KpiCard title="Compras" value={summary.totalPurchases} subtitle="Quantidade de vendas" />
             <KpiCard title="Faturamento" value={formatCurrency(summary.totalSpent)} subtitle={`Ticket: ${formatCurrency(summary.avgTicket)}`} />
-            <KpiCard
-              title="Melhor Cliente"
-              value={summary.topClient?.name || '-'}
-              subtitle={summary.topClient ? formatCurrency(summary.topClient.totalSpent) : 'Sem dados'}
-            />
+            <KpiCard title="Receita" value={formatCurrency(summary.totalIncome)} subtitle="Receita total no periodo" />
+            <KpiCard title="Melhor Cliente" value={summary.topClient?.name || '-'} subtitle={summary.topClient ? formatCurrency(summary.topClient.totalSpent) : 'Sem dados'} />
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <BarChartComponent
               data={chartData}
-              title="Top clientes por faturamento"
-              bars={[{ key: 'faturamento', label: 'Faturamento', color: '#10B981' }]}
+              title="Top clientes por faturamento e receita"
+              bars={[
+                { key: 'faturamento', label: 'Faturamento', color: '#10B981', yAxisId: 'left' },
+                { key: 'receita', label: 'Receita', color: '#FBBF24', yAxisId: 'right' },
+              ]}
               formatYAxis="currency"
               height={350}
             />
-            <BarChartComponent
-              data={chartData}
-              title="Top clientes por quantidade de compras"
-              bars={[{ key: 'compras', label: 'Compras', color: '#38BDF8' }]}
-              height={350}
-            />
+            <BarChartComponent data={chartData} title="Top clientes por quantidade de compras" bars={[{ key: 'compras', label: 'Compras', color: '#38BDF8' }]} height={350} />
           </div>
 
           <DataTable data={data} columns={columns} title={`Total: ${data.length} clientes`} />

@@ -34,11 +34,13 @@ export async function GET(req: NextRequest) {
           sellerName: sale.seller,
           totalSales: 0,
           totalRevenue: 0,
+          totalIncome: 0,
           avgTicket: 0,
           uniqueClients: 0,
           lastSaleDate: saleDate,
           topClientName: 'N/A',
           topClientRevenue: 0,
+          topClientIncome: 0,
           clients: [],
         };
         sellerMap.set(sellerId, seller);
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest) {
 
       seller.totalSales += 1;
       seller.totalRevenue += sale.value;
+      seller.totalIncome += sale.revenue;
       if (new Date(saleDate).getTime() > new Date(seller.lastSaleDate).getTime()) {
         seller.lastSaleDate = saleDate;
       }
@@ -56,6 +59,7 @@ export async function GET(req: NextRequest) {
           clientName: sale.client,
           totalSales: 0,
           totalRevenue: 0,
+          totalIncome: 0,
           avgTicket: 0,
           lastSaleDate: saleDate,
           productsCount: 0,
@@ -66,6 +70,7 @@ export async function GET(req: NextRequest) {
 
       client.totalSales += 1;
       client.totalRevenue += sale.value;
+      client.totalIncome += sale.revenue;
       if (new Date(saleDate).getTime() > new Date(client.lastSaleDate).getTime()) {
         client.lastSaleDate = saleDate;
       }
@@ -89,15 +94,18 @@ export async function GET(req: NextRequest) {
               avgTicket: Number(avgTicket.toFixed(2)),
               revenueShare: Number(revenueShare.toFixed(2)),
               totalRevenue: Number(client.totalRevenue.toFixed(2)),
+              totalIncome: Number(client.totalIncome.toFixed(2)),
             };
           })
           .sort((a, b) => b.totalRevenue - a.totalRevenue);
 
         seller.avgTicket = seller.totalSales > 0 ? Number((seller.totalRevenue / seller.totalSales).toFixed(2)) : 0;
         seller.totalRevenue = Number(seller.totalRevenue.toFixed(2));
+        seller.totalIncome = Number(seller.totalIncome.toFixed(2));
         seller.uniqueClients = seller.clients.length;
         seller.topClientName = seller.clients[0]?.clientName || 'N/A';
         seller.topClientRevenue = seller.clients[0]?.totalRevenue || 0;
+        seller.topClientIncome = seller.clients[0]?.totalIncome || 0;
 
         return seller;
       })

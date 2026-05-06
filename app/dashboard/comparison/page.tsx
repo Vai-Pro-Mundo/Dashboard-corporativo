@@ -6,7 +6,7 @@ import { DataTable } from '@/components/DataTable';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { KpiCard } from '@/components/KpiCard';
 import { PieChartComponent } from '@/components/PieChartComponent';
-import { getDefaultDateRange, parseDateInput, toDateInputValue } from '@/lib/date-range';
+import { parseDateInput, toDateInputValue } from '@/lib/date-range';
 import { formatCurrency, formatDate, formatPercentage } from '@/lib/format';
 import { useSharedDateRange } from '@/lib/use-shared-date-range';
 import { ComparisonClientItem, ComparisonData, ComparisonRankingItem } from '@/types';
@@ -77,76 +77,86 @@ export default function ComparisonPage() {
 
     return {
       revenue: [
-        { name: 'Comparado', total: data.previousPeriod.totalRevenue },
-        { name: 'Analisado', total: data.currentPeriod.totalRevenue },
+        { name: 'Periodo comparado', total: data.previousPeriod.totalRevenue },
+        { name: 'Periodo analisado', total: data.currentPeriod.totalRevenue },
+      ],
+      income: [
+        { name: 'Periodo comparado', total: data.previousPeriod.totalIncome },
+        { name: 'Periodo analisado', total: data.currentPeriod.totalIncome },
       ],
       sales: [
-        { name: 'Comparado', total: data.previousPeriod.totalSales },
-        { name: 'Analisado', total: data.currentPeriod.totalSales },
+        { name: 'Periodo comparado', total: data.previousPeriod.totalSales },
+        { name: 'Periodo analisado', total: data.currentPeriod.totalSales },
       ],
       ticket: [
-        { name: 'Comparado', total: data.previousPeriod.avgTicket },
-        { name: 'Analisado', total: data.currentPeriod.avgTicket },
+        { name: 'Periodo comparado', total: data.previousPeriod.avgTicket },
+        { name: 'Periodo analisado', total: data.currentPeriod.avgTicket },
       ],
       sellers: (data.sellerRanking || []).slice(0, 8).map((item) => ({
         name: truncate(item.name, 16),
         faturamento: item.revenue,
-        vendas: item.sales,
+        receita: item.income,
       })),
       products: (data.productRanking || []).slice(0, 8).map((item) => ({
         name: truncate(item.name, 18),
         faturamento: item.revenue,
-        vendas: item.sales,
+        receita: item.income,
       })),
     };
   }, [data]);
 
   const sellerColumns = [
-    { key: 'name' as const, label: 'Vendedor', width: '26%' },
+    { key: 'name' as const, label: 'Vendedor', width: '22%' },
     { key: 'sales' as const, label: 'Vendas', render: (value: number) => value },
     { key: 'revenue' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
-    { key: 'share' as const, label: 'Participacao', render: (value: number) => formatPercentage(value) },
-    { key: 'revenueGrowth' as const, label: 'Vs periodo anterior', render: (value: number) => renderGrowth(value) },
+    { key: 'income' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'share' as const, label: 'Part. Faturamento', render: (value: number) => formatPercentage(value) },
+    { key: 'incomeGrowth' as const, label: 'Crescimento da Receita', render: (value: number) => renderGrowth(value) },
   ];
 
   const productColumns = [
-    { key: 'name' as const, label: 'Produto', width: '28%' },
+    { key: 'name' as const, label: 'Produto', width: '24%' },
     { key: 'sales' as const, label: 'Vendas', render: (value: number) => value },
     { key: 'revenue' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
-    { key: 'share' as const, label: 'Participacao', render: (value: number) => formatPercentage(value) },
-    { key: 'revenueGrowth' as const, label: 'Vs periodo anterior', render: (value: number) => renderGrowth(value) },
+    { key: 'income' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'share' as const, label: 'Part. Faturamento', render: (value: number) => formatPercentage(value) },
+    { key: 'incomeGrowth' as const, label: 'Crescimento da Receita', render: (value: number) => renderGrowth(value) },
   ];
 
   const newClientColumns = [
-    { key: 'name' as const, label: 'Cliente novo', width: '28%' },
+    { key: 'name' as const, label: 'Cliente novo', width: '24%' },
     { key: 'firstPurchaseDate' as const, label: 'Primeira compra', render: (value: string) => formatDate(value) },
     { key: 'sales' as const, label: 'Compras no periodo', render: (value: number) => value },
     { key: 'revenue' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
+    { key: 'income' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
     { key: 'share' as const, label: 'Participacao', render: (value: number) => formatPercentage(value) },
   ];
 
   const recurringClientColumns = [
-    { key: 'name' as const, label: 'Cliente recorrente', width: '28%' },
+    { key: 'name' as const, label: 'Cliente recorrente', width: '24%' },
     { key: 'lastPurchaseDate' as const, label: 'Ultima compra', render: (value: string) => formatDate(value) },
     { key: 'sales' as const, label: 'Compras no periodo', render: (value: number) => value },
     { key: 'revenue' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
-    { key: 'revenueGrowth' as const, label: 'Vs periodo anterior', render: (value: number) => renderGrowth(value) },
+    { key: 'income' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'incomeGrowth' as const, label: 'Crescimento da Receita', render: (value: number) => renderGrowth(value) },
   ];
 
   const lostClientColumns = [
-    { key: 'name' as const, label: 'Cliente perdido', width: '28%' },
+    { key: 'name' as const, label: 'Cliente perdido', width: '24%' },
     { key: 'lastPurchaseDate' as const, label: 'Ultima compra no comparado', render: (value: string) => formatDate(value) },
     { key: 'previousSales' as const, label: 'Compras no comparado', render: (value: number) => value },
     { key: 'previousRevenue' as const, label: 'Faturamento perdido', render: (value: number) => formatCurrency(value) },
-    { key: 'revenueGrowth' as const, label: 'Variacao', render: (value: number) => renderGrowth(value) },
+    { key: 'previousIncome' as const, label: 'Receita perdida', render: (value: number) => formatCurrency(value) },
+    { key: 'incomeGrowth' as const, label: 'Variacao', render: (value: number) => renderGrowth(value) },
   ];
 
   const clientGrowthColumns = [
-    { key: 'name' as const, label: 'Cliente', width: '26%' },
+    { key: 'name' as const, label: 'Cliente', width: '22%' },
     { key: 'previousRevenue' as const, label: 'Faturamento comparado', render: (value: number) => formatCurrency(value) },
     { key: 'revenue' as const, label: 'Faturamento analisado', render: (value: number) => formatCurrency(value) },
-    { key: 'revenueGrowth' as const, label: 'Crescimento', render: (value: number) => renderGrowth(value) },
-    { key: 'salesGrowth' as const, label: 'Evolucao compras', render: (value: number) => renderGrowth(value) },
+    { key: 'previousIncome' as const, label: 'Receita comparada', render: (value: number) => formatCurrency(value) },
+    { key: 'income' as const, label: 'Receita analisada', render: (value: number) => formatCurrency(value) },
+    { key: 'incomeGrowth' as const, label: 'Crescimento da Receita', render: (value: number) => renderGrowth(value) },
   ];
 
   return (
@@ -154,9 +164,7 @@ export default function ComparisonPage() {
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-300">Analise por periodo</p>
         <h1 className="mt-1 text-3xl font-bold text-white">Comparacao</h1>
-        <p className="mt-1 text-cyan-100/60">
-          Escolha o periodo que deseja analisar para entender melhor produto, melhor vendedor, novos clientes e recorrencia.
-        </p>
+        <p className="mt-1 text-cyan-100/60">Escolha o periodo analisado e o periodo comparado para entender vendedores, produtos e comportamento de clientes.</p>
       </div>
 
       <DateRangePicker onDateChange={setDateRange} defaultStartDate={startDate} defaultEndDate={endDate} />
@@ -180,9 +188,9 @@ export default function ComparisonPage() {
       {data && comparisonCharts && !loading && !error && (
         <>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <KpiCard title="Clientes novos" value={data.summary.newClients} subtitle={`Faturamento: ${formatCurrency(data.summary.newClientsRevenue)}`} />
-            <KpiCard title="Clientes recorrentes" value={data.summary.recurringClients} subtitle={`Faturamento: ${formatCurrency(data.summary.recurringRevenue)}`} />
-            <KpiCard title="Clientes perdidos" value={data.summary.lostClients} subtitle={`Faturamento perdido: ${formatCurrency(data.summary.lostClientsRevenue)}`} />
+            <KpiCard title="Clientes novos" value={data.summary.newClients} subtitle={`Fat.: ${formatCurrency(data.summary.newClientsRevenue)} | Rec.: ${formatCurrency(data.summary.newClientsIncome)}`} />
+            <KpiCard title="Clientes recorrentes" value={data.summary.recurringClients} subtitle={`Fat.: ${formatCurrency(data.summary.recurringRevenue)} | Rec.: ${formatCurrency(data.summary.recurringIncome)}`} />
+            <KpiCard title="Clientes perdidos" value={data.summary.lostClients} subtitle={`Fat.: ${formatCurrency(data.summary.lostClientsRevenue)} | Rec.: ${formatCurrency(data.summary.lostClientsIncome)}`} />
             <KpiCard title="Clientes com recompra" value={data.summary.repeatClients} subtitle={`Taxa: ${formatPercentage(data.summary.repeatRate)}`} />
           </div>
 
@@ -193,88 +201,63 @@ export default function ComparisonPage() {
             <KpiCard title="Clientes totais" value={data.summary.totalClients} subtitle="Clientes ativos no periodo analisado" />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
             <KpiCard
               title="Faturamento"
               value={formatPercentage(data.growth.revenueGrowth)}
-              subtitle={`${formatCurrency(data.previousPeriod.totalRevenue)} anterior | ${formatCurrency(data.currentPeriod.totalRevenue)} atual`}
+              subtitle={`${formatCurrency(data.previousPeriod.totalRevenue)} no periodo comparado | ${formatCurrency(data.currentPeriod.totalRevenue)} no periodo analisado`}
               trend={{ value: Math.abs(data.growth.revenueGrowth), direction: data.growth.revenueGrowth >= 0 ? 'up' : 'down' }}
+            />
+            <KpiCard
+              title="Receita"
+              value={formatPercentage(data.growth.incomeGrowth)}
+              subtitle={`${formatCurrency(data.previousPeriod.totalIncome)} no periodo comparado | ${formatCurrency(data.currentPeriod.totalIncome)} no periodo analisado`}
+              trend={{ value: Math.abs(data.growth.incomeGrowth), direction: data.growth.incomeGrowth >= 0 ? 'up' : 'down' }}
             />
             <KpiCard
               title="Vendas"
               value={formatPercentage(data.growth.salesGrowth)}
-              subtitle={`${data.previousPeriod.totalSales} anterior | ${data.currentPeriod.totalSales} atual`}
+              subtitle={`${data.previousPeriod.totalSales} no periodo comparado | ${data.currentPeriod.totalSales} no periodo analisado`}
               trend={{ value: Math.abs(data.growth.salesGrowth), direction: data.growth.salesGrowth >= 0 ? 'up' : 'down' }}
             />
             <KpiCard
               title="Ticket medio"
               value={formatPercentage(data.growth.avgTicketGrowth)}
-              subtitle={`${formatCurrency(data.previousPeriod.avgTicket)} anterior | ${formatCurrency(data.currentPeriod.avgTicket)} atual`}
+              subtitle={`${formatCurrency(data.previousPeriod.avgTicket)} no periodo comparado | ${formatCurrency(data.currentPeriod.avgTicket)} no periodo analisado`}
               trend={{ value: Math.abs(data.growth.avgTicketGrowth), direction: data.growth.avgTicketGrowth >= 0 ? 'up' : 'down' }}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <InsightCard
-              title="Melhor vendedor do periodo"
-              item={data.topSeller}
-              accent="text-emerald-300"
-              subtitleLabel="Participacao"
-            />
-            <InsightCard
-              title="Melhor produto do periodo"
-              item={data.topProduct}
-              accent="text-amber-300"
-              subtitleLabel="Participacao"
-            />
-            <InsightCard
-              title="Cliente destaque"
-              item={data.topClient}
-              accent="text-cyan-300"
-              subtitleLabel="Participacao"
-            />
+            <InsightCard title="Melhor vendedor do periodo analisado" item={data.topSeller} accent="text-emerald-300" subtitleLabel="Part. do faturamento" />
+            <InsightCard title="Melhor produto do periodo analisado" item={data.topProduct} accent="text-amber-300" subtitleLabel="Part. do faturamento" />
+            <InsightCard title="Cliente destaque do periodo analisado" item={data.topClient} accent="text-cyan-300" subtitleLabel="Part. do faturamento" />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <BarChartComponent
-              data={comparisonCharts.revenue}
-              title="Faturamento: periodo analisado x comparado"
-              bars={[{ key: 'total', label: 'Faturamento', color: '#10B981' }]}
-              formatYAxis="currency"
-              height={300}
-            />
-            <BarChartComponent
-              data={comparisonCharts.sales}
-              title="Vendas: periodo analisado x comparado"
-              bars={[{ key: 'total', label: 'Vendas', color: '#38BDF8' }]}
-              height={300}
-            />
-            <BarChartComponent
-              data={comparisonCharts.ticket}
-              title="Ticket medio: periodo analisado x comparado"
-              bars={[{ key: 'total', label: 'Ticket medio', color: '#FBBF24' }]}
-              formatYAxis="currency"
-              height={300}
-            />
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
+            <BarChartComponent data={comparisonCharts.revenue} title="Faturamento: periodo analisado x periodo comparado" bars={[{ key: 'total', label: 'Faturamento', color: '#10B981' }]} formatYAxis="currency" height={300} />
+            <BarChartComponent data={comparisonCharts.income} title="Receita: periodo analisado x periodo comparado" bars={[{ key: 'total', label: 'Receita', color: '#FBBF24' }]} formatYAxis="currency" height={300} />
+            <BarChartComponent data={comparisonCharts.sales} title="Vendas: periodo analisado x periodo comparado" bars={[{ key: 'total', label: 'Vendas', color: '#38BDF8' }]} height={300} />
+            <BarChartComponent data={comparisonCharts.ticket} title="Ticket medio: periodo analisado x periodo comparado" bars={[{ key: 'total', label: 'Ticket medio', color: '#A78BFA' }]} formatYAxis="currency" height={300} />
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <BarChartComponent
               data={comparisonCharts.sellers}
-              title="Top vendedores no periodo"
+              title="Top vendedores no periodo analisado"
               bars={[
                 { key: 'faturamento', label: 'Faturamento', color: '#10B981', yAxisId: 'left' },
-                { key: 'vendas', label: 'Vendas', color: '#38BDF8', yAxisId: 'right' },
+                { key: 'receita', label: 'Receita', color: '#FBBF24', yAxisId: 'right' },
               ]}
               formatYAxis="currency"
               height={360}
             />
             <BarChartComponent
               data={comparisonCharts.products}
-              title="Top produtos no periodo"
+              title="Top produtos no periodo analisado"
               bars={[
-                { key: 'faturamento', label: 'Faturamento', color: '#FBBF24', yAxisId: 'left' },
-                { key: 'vendas', label: 'Vendas', color: '#A78BFA', yAxisId: 'right' },
+                { key: 'faturamento', label: 'Faturamento', color: '#22C55E', yAxisId: 'left' },
+                { key: 'receita', label: 'Receita', color: '#F59E0B', yAxisId: 'right' },
               ]}
               formatYAxis="currency"
               height={360}
@@ -282,23 +265,25 @@ export default function ComparisonPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <PieChartComponent data={data.clientMix} title="Mix de clientes no periodo" valueLabel="Clientes" height={320} />
+            <PieChartComponent data={data.clientMix} title="Mix de clientes no periodo analisado" valueLabel="Clientes" height={320} />
             <div className="rounded border border-cyan-400/15 bg-[#0B2440] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.24)] xl:col-span-2">
-              <h3 className="text-lg font-bold text-white">Leitura do periodo selecionado</h3>
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <MiniMetric label="Faturamento do melhor vendedor" value={formatCurrency(data.topSeller?.revenue || 0)} />
-                <MiniMetric label="Faturamento do melhor produto" value={formatCurrency(data.topProduct?.revenue || 0)} />
-                <MiniMetric label="Participacao de clientes novos" value={formatPercentage(data.summary.totalClients > 0 ? (data.summary.newClients / data.summary.totalClients) * 100 : 0)} />
-                <MiniMetric label="Participacao de clientes recorrentes" value={formatPercentage(data.summary.totalClients > 0 ? (data.summary.recurringClients / data.summary.totalClients) * 100 : 0)} />
+              <h3 className="text-lg font-bold text-white">Leitura do periodo analisado</h3>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <MiniMetric label="Fat. do melhor vendedor" value={formatCurrency(data.topSeller?.revenue || 0)} />
+                <MiniMetric label="Rec. do melhor vendedor" value={formatCurrency(data.topSeller?.income || 0)} />
+                <MiniMetric label="Fat. do melhor produto" value={formatCurrency(data.topProduct?.revenue || 0)} />
+                <MiniMetric label="Rec. do melhor produto" value={formatCurrency(data.topProduct?.income || 0)} />
+                <MiniMetric label="Clientes novos" value={formatPercentage(data.summary.totalClients > 0 ? (data.summary.newClients / data.summary.totalClients) * 100 : 0)} />
+                <MiniMetric label="Clientes recorrentes" value={formatPercentage(data.summary.totalClients > 0 ? (data.summary.recurringClients / data.summary.totalClients) * 100 : 0)} />
               </div>
             </div>
           </div>
 
-          <DataTable<ComparisonRankingItem> data={data.sellerRanking} columns={sellerColumns} title="Ranking de vendedores no periodo" />
-          <DataTable<ComparisonRankingItem> data={data.productRanking} columns={productColumns} title="Ranking de produtos no periodo" />
+          <DataTable<ComparisonRankingItem> data={data.sellerRanking} columns={sellerColumns} title="Ranking de vendedores no periodo analisado" />
+          <DataTable<ComparisonRankingItem> data={data.productRanking} columns={productColumns} title="Ranking de produtos no periodo analisado" />
           <DataTable<ComparisonClientItem> data={data.clientGrowthList} columns={clientGrowthColumns} title="Crescimento de clientes entre os dois periodos" />
-          <DataTable<ComparisonClientItem> data={data.newClientsList} columns={newClientColumns} title="Clientes novos e primeira compra no periodo" />
-          <DataTable<ComparisonClientItem> data={data.recurringClientsList} columns={recurringClientColumns} title="Clientes recorrentes no periodo" />
+          <DataTable<ComparisonClientItem> data={data.newClientsList} columns={newClientColumns} title="Clientes novos e primeira compra no periodo analisado" />
+          <DataTable<ComparisonClientItem> data={data.recurringClientsList} columns={recurringClientColumns} title="Clientes recorrentes no periodo analisado" />
           <DataTable<ComparisonClientItem> data={data.lostClientsList} columns={lostClientColumns} title="Clientes perdidos entre os periodos" />
         </>
       )}
@@ -347,27 +332,17 @@ function ComparisonRangePicker({
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data Inicial Comparada</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300"
-          />
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data inicial comparada</label>
+          <input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300" />
         </div>
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data Final Comparada</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300"
-          />
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data final comparada</label>
+          <input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300" />
         </div>
       </div>
       <div className="flex justify-end">
         <button onClick={onApply} className="rounded bg-amber-300 px-4 py-2 text-sm font-bold text-[#061427] transition-colors hover:bg-amber-200">
-          Aplicar Comparacao
+          Aplicar comparacao
         </button>
       </div>
     </div>
@@ -401,9 +376,9 @@ function InsightCard({
       <p className={`mt-3 text-2xl font-bold ${accent}`}>{item?.name || 'Sem dados'}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <MiniMetric label="Faturamento" value={formatCurrency(item?.revenue || 0)} />
-        <MiniMetric label="Vendas" value={String(item?.sales || 0)} />
+        <MiniMetric label="Receita" value={formatCurrency(item?.income || 0)} />
         <MiniMetric label={subtitleLabel} value={formatPercentage(item?.share || 0)} />
-        <MiniMetric label="Crescimento vs periodo comparado" value={formatPercentage(item?.revenueGrowth || 0)} highlight={item?.revenueGrowth || 0} />
+        <MiniMetric label="Crescimento da receita" value={formatPercentage(item?.incomeGrowth || 0)} highlight={item?.incomeGrowth || 0} />
       </div>
     </div>
   );

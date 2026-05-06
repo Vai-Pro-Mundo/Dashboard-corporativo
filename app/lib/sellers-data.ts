@@ -5,6 +5,7 @@ export interface SellerRow {
   name: string;
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   openRevenue: number;
   openSales: number;
   commission: number;
@@ -43,6 +44,7 @@ export async function getSellersData(startDate?: string | null, endDate?: string
         name: sale.seller,
         totalSales: 0,
         totalRevenue: 0,
+        totalIncome: 0,
         lastSaleDate: new Date(0),
         salesCount: 0,
       };
@@ -50,6 +52,7 @@ export async function getSellersData(startDate?: string | null, endDate?: string
 
     acc[sale.seller].totalSales++;
     acc[sale.seller].totalRevenue += sale.value;
+    acc[sale.seller].totalIncome += sale.revenue;
     acc[sale.seller].salesCount++;
 
     const saleDate = new Date(sale.date);
@@ -66,9 +69,10 @@ export async function getSellersData(startDate?: string | null, endDate?: string
       name: seller.name,
       totalSales: seller.totalSales,
       totalRevenue: Number(seller.totalRevenue.toFixed(2)),
+      totalIncome: Number(seller.totalIncome.toFixed(2)),
       openRevenue: Number((openMap[seller.name]?.revenue ?? 0).toFixed(2)),
       openSales: openMap[seller.name]?.count ?? 0,
-      commission: 0,
+      commission: Number(seller.totalIncome.toFixed(2)),
       avgTicket: seller.salesCount > 0 ? Number((seller.totalRevenue / seller.salesCount).toFixed(2)) : 0,
       status: 'ACTIVE',
       lastSaleDate: seller.lastSaleDate.toISOString(),

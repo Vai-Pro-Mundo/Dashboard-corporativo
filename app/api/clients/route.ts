@@ -30,12 +30,14 @@ export async function GET(req: NextRequest) {
           name: sale.client,
           totalPurchases: 0,
           totalSpent: 0,
+          totalIncome: 0,
           lastPurchaseDate: new Date(0),
           products: new Set(),
         };
       }
       acc[sale.client].totalPurchases++;
       acc[sale.client].totalSpent += sale.value;
+      acc[sale.client].totalIncome += sale.revenue;
       acc[sale.client].products.add(sale.product);
       const saleDate = new Date(sale.date);
       if (saleDate > acc[sale.client].lastPurchaseDate) {
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
         name: c.name,
         totalPurchases: c.totalPurchases,
         totalSpent: parseFloat(c.totalSpent.toFixed(2)),
+        totalIncome: parseFloat(c.totalIncome.toFixed(2)),
         avgTicket: c.totalPurchases > 0 ? parseFloat((c.totalSpent / c.totalPurchases).toFixed(2)) : 0,
         lastPurchaseDate: c.lastPurchaseDate.toISOString(),
         productsCount: c.products.size,

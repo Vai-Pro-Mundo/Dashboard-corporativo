@@ -18,6 +18,7 @@ export interface SalesRecord {
 export interface OverviewData {
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   totalClients: number;
   totalProducts: number;
   avgTicket: number;
@@ -32,10 +33,10 @@ export interface OverviewData {
   topProductAmount: number;
   nationalSales: number;
   internationalSales: number;
-  topSellers: Array<{ name: string; revenue: number; sales: number }>;
-  topClients: Array<{ name: string; revenue: number; sales: number }>;
-  topProducts: Array<{ name: string; revenue: number; sales: number }>;
-  salesTrend: Array<{ date: string; sales: number; revenue: number }>;
+  topSellers: Array<{ name: string; revenue: number; income: number; sales: number }>;
+  topClients: Array<{ name: string; revenue: number; income: number; sales: number }>;
+  topProducts: Array<{ name: string; revenue: number; income: number; sales: number }>;
+  salesTrend: Array<{ date: string; sales: number; revenue: number; income: number }>;
 }
 
 type SheetPayload = { headers: any[]; data: any[][] };
@@ -374,14 +375,19 @@ export function filterSalesByDateRange(sales: SalesRecord[], startDate?: string 
 export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue: number; count: number }): OverviewData {
   const totalSales = sales.length;
   const totalRevenue = sales.reduce((sum, sale) => sum + sale.value, 0);
+  const totalIncome = sales.reduce((sum, sale) => sum + sale.revenue, 0);
   const uniqueClients = new Set(sales.map((sale) => sale.client)).size;
   const uniqueProducts = new Set(sales.map((sale) => sale.product)).size;
   const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
   const nationalSales = sales.filter((s) => s.destination.toLowerCase().includes('nacional')).length;
   const internationalSales = sales.filter((s) => s.destination.toLowerCase().includes('inter')).length;
 
-  const sellerSales = sales.reduce<Record<string, number>>((acc, sale) => {
-    acc[sale.seller] = (acc[sale.seller] || 0) + sale.value;
+  const sellerSales = sales.reduce<Record<string, { revenue: number; income: number }>>((acc, sale) => {
+    if (!acc[sale.seller]) {
+      acc[sale.seller] = { revenue: 0, income: 0 };
+    }
+    acc[sale.seller].revenue += sale.value;
+    acc[sale.seller].income += sale.revenue;
     return acc;
   }, {});
   const sellerCounts = sales.reduce<Record<string, number>>((acc, sale) => {
@@ -389,8 +395,12 @@ export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue
     return acc;
   }, {});
 
-  const clientSales = sales.reduce<Record<string, number>>((acc, sale) => {
-    acc[sale.client] = (acc[sale.client] || 0) + sale.value;
+  const clientSales = sales.reduce<Record<string, { revenue: number; income: number }>>((acc, sale) => {
+    if (!acc[sale.client]) {
+      acc[sale.client] = { revenue: 0, income: 0 };
+    }
+    acc[sale.client].revenue += sale.value;
+    acc[sale.client].income += sale.revenue;
     return acc;
   }, {});
   const clientCounts = sales.reduce<Record<string, number>>((acc, sale) => {
@@ -398,8 +408,12 @@ export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue
     return acc;
   }, {});
 
-  const productSales = sales.reduce<Record<string, number>>((acc, sale) => {
-    acc[sale.product] = (acc[sale.product] || 0) + sale.value;
+  const productSales = sales.reduce<Record<string, { revenue: number; income: number }>>((acc, sale) => {
+    if (!acc[sale.product]) {
+      acc[sale.product] = { revenue: 0, income: 0 };
+    }
+    acc[sale.product].revenue += sale.value;
+    acc[sale.product].income += sale.revenue;
     return acc;
   }, {});
   const productCounts = sales.reduce<Record<string, number>>((acc, sale) => {
@@ -407,31 +421,34 @@ export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue
     return acc;
   }, {});
 
-  const dateSales = sales.reduce<Record<string, { count: number; revenue: number }>>((acc, sale) => {
+  const dateSales = sales.reduce<Record<string, { count: number; revenue: number; income: number }>>((acc, sale) => {
     const dateKey = sale.date.split('T')[0] || 'Unknown';
     if (!acc[dateKey]) {
-      acc[dateKey] = { count: 0, revenue: 0 };
+      acc[dateKey] = { count: 0, revenue: 0, income: 0 };
     }
     acc[dateKey].count++;
     acc[dateKey].revenue += sale.value;
+    acc[dateKey].income += sale.revenue;
     return acc;
   }, {});
 
-  const topSellerEntry = Object.entries(sellerSales).sort((a, b) => b[1] - a[1])[0];
-  const topClientEntry = Object.entries(clientSales).sort((a, b) => b[1] - a[1])[0];
-  const topProductEntry = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
+  const topSellerEntry = Object.entries(sellerSales).sort((a, b) => b[1].revenue - a[1].revenue)[0];
+  const topClientEntry = Object.entries(clientSales).sort((a, b) => b[1].revenue - a[1].revenue)[0];
+  const topProductEntry = Object.entries(productSales).sort((a, b) => b[1].revenue - a[1].revenue)[0];
 
   const salesTrend = Object.entries(dateSales)
     .map(([date, data]) => ({
       date,
       sales: data.count,
       revenue: Number(data.revenue.toFixed(2)),
+      income: Number(data.income.toFixed(2)),
     }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return {
     totalSales,
     totalRevenue,
+    totalIncome: Number(totalIncome.toFixed(2)),
     totalClients: uniqueClients,
     totalProducts: uniqueProducts,
     avgTicket,
@@ -439,11 +456,11 @@ export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue
     openRevenue: openSalesData ? Number(openSalesData.revenue.toFixed(2)) : 0,
     openSales: openSalesData ? openSalesData.count : 0,
     topSellerName: topSellerEntry ? topSellerEntry[0] : 'N/A',
-    topSellerAmount: topSellerEntry ? Number(topSellerEntry[1].toFixed(2)) : 0,
+    topSellerAmount: topSellerEntry ? Number(topSellerEntry[1].revenue.toFixed(2)) : 0,
     topClientName: topClientEntry ? topClientEntry[0] : 'N/A',
-    topClientAmount: topClientEntry ? Number(topClientEntry[1].toFixed(2)) : 0,
+    topClientAmount: topClientEntry ? Number(topClientEntry[1].revenue.toFixed(2)) : 0,
     topProductName: topProductEntry ? topProductEntry[0] : 'N/A',
-    topProductAmount: topProductEntry ? Number(topProductEntry[1].toFixed(2)) : 0,
+    topProductAmount: topProductEntry ? Number(topProductEntry[1].revenue.toFixed(2)) : 0,
     nationalSales,
     internationalSales,
     topSellers: toTopList(sellerSales, sellerCounts),
@@ -453,13 +470,14 @@ export function calculateMetrics(sales: SalesRecord[], openSalesData?: { revenue
   };
 }
 
-function toTopList(revenueByName: Record<string, number>, countByName: Record<string, number>) {
-  return Object.entries(revenueByName)
-    .sort((a, b) => b[1] - a[1])
+function toTopList(metricsByName: Record<string, { revenue: number; income: number }>, countByName: Record<string, number>) {
+  return Object.entries(metricsByName)
+    .sort((a, b) => b[1].revenue - a[1].revenue)
     .slice(0, 8)
-    .map(([name, revenue]) => ({
+    .map(([name, metrics]) => ({
       name,
-      revenue: Number(revenue.toFixed(2)),
+      revenue: Number(metrics.revenue.toFixed(2)),
+      income: Number(metrics.income.toFixed(2)),
       sales: countByName[name] || 0,
     }));
 }

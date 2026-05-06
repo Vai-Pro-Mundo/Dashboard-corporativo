@@ -24,18 +24,21 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {});
 
-    const salesByDateMap = allSales.reduce<Record<string, { sales: number; revenue: number }>>((acc, sale) => {
+    const salesByDateMap = allSales.reduce<Record<string, { sales: number; revenue: number; income: number }>>((acc, sale) => {
       const dateKey = sale.date.split('T')[0];
       if (!acc[dateKey]) {
-        acc[dateKey] = { sales: 0, revenue: 0 };
+        acc[dateKey] = { sales: 0, revenue: 0, income: 0 };
       }
       acc[dateKey].sales++;
       acc[dateKey].revenue += sale.value;
+      acc[dateKey].income += sale.revenue;
       return acc;
     }, {});
 
     return NextResponse.json({
       totalSales: allSales.length,
+      totalRevenue: Number(allSales.reduce((sum, sale) => sum + sale.value, 0).toFixed(2)),
+      totalIncome: Number(allSales.reduce((sum, sale) => sum + sale.revenue, 0).toFixed(2)),
       avgAdvanceDays:
         allSales.length > 0 ? Number((allSales.reduce((sum, sale) => sum + sale.advanceDays, 0) / allSales.length).toFixed(1)) : 0,
       bookingPatterns: [
@@ -54,6 +57,7 @@ export async function GET(req: NextRequest) {
           date,
           sales: value.sales,
           revenue: Number(value.revenue.toFixed(2)),
+          income: Number(value.income.toFixed(2)),
         }))
         .sort((a, b) => a.date.localeCompare(b.date)),
     });

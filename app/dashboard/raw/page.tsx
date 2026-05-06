@@ -51,11 +51,11 @@ export default function RawPage() {
 
   const columns = [
     { key: 'date' as const, label: 'Data', render: (value: Date) => formatDate(value) },
-    { key: 'sellerName' as const, label: 'Vendedor', width: '20%' },
-    { key: 'client' as const, label: 'Cliente', width: '20%' },
-    { key: 'product' as const, label: 'Produto', width: '20%' },
-    { key: 'amount' as const, label: 'Valor', render: (value: number) => formatCurrency(value) },
-    { key: 'commission' as const, label: 'Receitas', render: (value: number) => formatCurrency(value) },
+    { key: 'sellerName' as const, label: 'Vendedor', width: '18%' },
+    { key: 'client' as const, label: 'Cliente', width: '18%' },
+    { key: 'product' as const, label: 'Produto', width: '18%' },
+    { key: 'amount' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
+    { key: 'commission' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
     {
       key: 'status' as const,
       label: 'Status',
@@ -84,12 +84,12 @@ export default function RawPage() {
 
       <DateRangePicker onDateChange={handleDateChange} defaultStartDate={startDate} defaultEndDate={endDate} />
 
-      {loading && <div className="text-center py-8 text-cyan-100/70">Carregando dados...</div>}
+      {loading && <div className="py-8 text-center text-cyan-100/70">Carregando dados...</div>}
       {error && <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">{error}</div>}
 
       {!loading && !error && (
         <>
-          <DataTable data={data} columns={columns} title={`Total: ${pagination.total} vendas (Página ${pagination.page} de ${pagination.pages})`} />
+          <DataTable data={data} columns={columns} title={`Total: ${pagination.total} vendas (Pagina ${pagination.page} de ${pagination.pages})`} />
 
           {pagination.pages > 1 && (
             <div className="flex justify-center gap-2">
@@ -116,7 +116,7 @@ export default function RawPage() {
                 disabled={pagination.page === pagination.pages}
                 className="rounded bg-emerald-400 px-4 py-2 font-semibold text-slate-950 transition-colors hover:bg-emerald-300 disabled:bg-slate-700 disabled:text-cyan-100/40"
               >
-                Próxima
+                Proxima
               </button>
             </div>
           )}

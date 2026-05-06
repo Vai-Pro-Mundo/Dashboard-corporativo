@@ -38,6 +38,7 @@ export interface User {
 export interface OverviewData {
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   totalClients: number;
   totalProducts: number;
   avgTicket: number;
@@ -52,13 +53,14 @@ export interface OverviewData {
   topProductAmount: number;
   nationalSales?: number;
   internationalSales?: number;
-  topSellers?: Array<{ name: string; revenue: number; sales: number }>;
-  topClients?: Array<{ name: string; revenue: number; sales: number }>;
-  topProducts?: Array<{ name: string; revenue: number; sales: number }>;
+  topSellers?: Array<{ name: string; revenue: number; income: number; sales: number }>;
+  topClients?: Array<{ name: string; revenue: number; income: number; sales: number }>;
+  topProducts?: Array<{ name: string; revenue: number; income: number; sales: number }>;
   salesTrend: Array<{
     date: string;
     sales: number;
     revenue: number;
+    income: number;
   }>;
 }
 
@@ -67,6 +69,7 @@ export interface SellersData {
   name: string;
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   commission: number;
   avgTicket: number;
   status: string;
@@ -79,6 +82,7 @@ export interface ClientsData {
   name: string;
   totalPurchases: number;
   totalSpent: number;
+  totalIncome: number;
   avgTicket: number;
   lastPurchaseDate: Date;
   productsCount: number;
@@ -90,6 +94,7 @@ export interface ProductsData {
   name: string;
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   avgPrice: number;
   lastSaleDate: Date;
   unitsSold: number;
@@ -98,10 +103,12 @@ export interface ProductsData {
 
 export interface BehavioralData {
   totalSales: number;
+  totalRevenue: number;
+  totalIncome: number;
   avgAdvanceDays: number;
   bookingPatterns: Array<{ name: string; sales: number }>;
   customerProfiles: Array<{ name: string; clients: number }>;
-  salesByDate: Array<{ date: string; sales: number; revenue: number }>;
+  salesByDate: Array<{ date: string; sales: number; revenue: number; income: number }>;
 }
 
 export interface ComparisonData {
@@ -119,16 +126,19 @@ export interface ComparisonData {
   previousPeriod: {
     totalSales: number;
     totalRevenue: number;
+    totalIncome: number;
     avgTicket: number;
   };
   currentPeriod: {
     totalSales: number;
     totalRevenue: number;
+    totalIncome: number;
     avgTicket: number;
   };
   growth: {
     salesGrowth: number;
     revenueGrowth: number;
+    incomeGrowth: number;
     avgTicketGrowth: number;
   };
   chartData: Array<{ name: string; anterior: number; atual: number }>;
@@ -140,8 +150,11 @@ export interface ComparisonData {
     repeatClients: number;
     repeatRate: number;
     newClientsRevenue: number;
+    newClientsIncome: number;
     recurringRevenue: number;
+    recurringIncome: number;
     lostClientsRevenue: number;
+    lostClientsIncome: number;
     growingClients: number;
     decliningClients: number;
     stableClients: number;
@@ -162,11 +175,15 @@ export interface ComparisonRankingItem {
   name: string;
   sales: number;
   revenue: number;
+  income: number;
   share: number;
+  incomeShare: number;
   previousSales: number;
   previousRevenue: number;
+  previousIncome: number;
   salesGrowth: number;
   revenueGrowth: number;
+  incomeGrowth: number;
 }
 
 export interface ComparisonClientItem extends ComparisonRankingItem {
@@ -182,6 +199,7 @@ export interface SellerClientBreakdownItem {
   clientName: string;
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   avgTicket: number;
   lastSaleDate: string;
   productsCount: number;
@@ -193,10 +211,12 @@ export interface SellerClientBreakdown {
   sellerName: string;
   totalSales: number;
   totalRevenue: number;
+  totalIncome: number;
   avgTicket: number;
   uniqueClients: number;
   lastSaleDate: string;
   topClientName: string;
   topClientRevenue: number;
+  topClientIncome: number;
   clients: SellerClientBreakdownItem[];
 }

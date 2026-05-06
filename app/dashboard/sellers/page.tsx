@@ -39,6 +39,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
     const topSellers = data.slice(0, 10);
     const maxRevenue = Math.max(...topSellers.map((seller) => seller.totalRevenue), 1);
     const totalRevenue = data.reduce((sum, seller) => sum + seller.totalRevenue, 0);
+    const totalIncome = data.reduce((sum, seller) => sum + seller.totalIncome, 0);
     const totalSales = data.reduce((sum, seller) => sum + seller.totalSales, 0);
     const topSeller = data[0];
 
@@ -76,7 +77,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
           </button>
         </form>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
           <div className="rounded border border-cyan-400/15 bg-[#0B2440] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
             <p className="text-sm text-cyan-100/60">Vendedores</p>
             <p className="mt-2 text-3xl font-bold text-white">{data.length}</p>
@@ -90,7 +91,11 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
             <p className="mt-2 text-3xl font-bold text-white">{formatCurrency(totalRevenue)}</p>
           </div>
           <div className="rounded border border-cyan-400/15 bg-[#0B2440] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
-            <p className="text-sm text-cyan-100/60">Líder</p>
+            <p className="text-sm text-cyan-100/60">Receita</p>
+            <p className="mt-2 text-3xl font-bold text-white">{formatCurrency(totalIncome)}</p>
+          </div>
+          <div className="rounded border border-cyan-400/15 bg-[#0B2440] p-5 shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
+            <p className="text-sm text-cyan-100/60">Lider</p>
             <p className="mt-2 truncate text-2xl font-bold text-white">{topSeller?.name || '-'}</p>
             <p className="mt-1 text-sm text-emerald-200">{topSeller ? formatCurrency(topSeller.totalRevenue) : 'Sem dados'}</p>
           </div>
@@ -100,7 +105,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
           <h2 className="mb-5 text-lg font-semibold text-white">Top vendedores por faturamento</h2>
           <div className="space-y-4">
             {topSellers.map((seller) => (
-              <div key={seller.id} className="grid grid-cols-1 items-center gap-3 md:grid-cols-[260px_1fr_150px]">
+              <div key={seller.id} className="grid grid-cols-1 items-center gap-3 md:grid-cols-[220px_1fr_160px_160px]">
                 <div className="truncate text-sm font-medium text-cyan-50">{seller.name}</div>
                 <div className="h-3 overflow-hidden rounded-full bg-slate-950/70">
                   <div
@@ -109,6 +114,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
                   />
                 </div>
                 <div className="text-sm font-semibold text-cyan-50 md:text-right">{formatCurrency(seller.totalRevenue)}</div>
+                <div className="text-sm font-semibold text-amber-200 md:text-right">{formatCurrency(seller.totalIncome)}</div>
               </div>
             ))}
           </div>
@@ -120,7 +126,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
             <table className="w-full">
               <thead className="border-b border-cyan-400/15 bg-slate-950/25">
                 <tr>
-                  {['Nome do Vendedor', 'Vendas', 'Faturamento', 'Em Aberto', 'Ticket Médio', 'Última Venda'].map((heading) => (
+                  {['Nome do Vendedor', 'Vendas', 'Faturamento', 'Receita', 'Em Aberto', 'Ticket Medio', 'Ultima Venda'].map((heading) => (
                     <th key={heading} className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-cyan-100/60">
                       {heading}
                     </th>
@@ -133,14 +139,15 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
                     <td className="px-6 py-4 text-sm text-cyan-50">{seller.name}</td>
                     <td className="px-6 py-4 text-sm text-cyan-50">{seller.totalSales}</td>
                     <td className="px-6 py-4 text-sm text-cyan-50">{formatCurrency(seller.totalRevenue)}</td>
-                    <td className="px-6 py-4 text-sm text-amber-300">{seller.openSales > 0 ? formatCurrency(seller.openRevenue) : '—'}</td>
+                    <td className="px-6 py-4 text-sm text-amber-200">{formatCurrency(seller.totalIncome)}</td>
+                    <td className="px-6 py-4 text-sm text-amber-300">{seller.openSales > 0 ? formatCurrency(seller.openRevenue) : '-'}</td>
                     <td className="px-6 py-4 text-sm text-cyan-50">{formatCurrency(seller.avgTicket)}</td>
                     <td className="px-6 py-4 text-sm text-cyan-50">{formatDate(seller.lastSaleDate)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {data.length === 0 && <div className="py-8 text-center text-cyan-100/70">Nenhum dado disponível</div>}
+            {data.length === 0 && <div className="py-8 text-center text-cyan-100/70">Nenhum dado disponivel</div>}
           </div>
         </div>
       </div>
@@ -151,9 +158,7 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-white">Vendedores</h1>
-        <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">
-          Falha ao carregar dados: {message}
-        </div>
+        <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">Falha ao carregar dados: {message}</div>
       </div>
     );
   }

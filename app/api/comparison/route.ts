@@ -51,8 +51,11 @@ export async function GET(req: NextRequest) {
     const totalClients = currentClientDetails.length;
     const repeatClients = countRepeatClients(currentSales);
     const newClientsRevenue = sumRevenue(newClientsList);
+    const newClientsIncome = sumIncome(newClientsList);
     const recurringRevenue = sumRevenue(recurringClientsList);
+    const recurringIncome = sumIncome(recurringClientsList);
     const lostClientsRevenue = sumRevenue(lostClientsList);
+    const lostClientsIncome = sumIncome(lostClientsList);
     const growingClients = clientGrowthList.filter((client) => client.revenueGrowth > 0).length;
     const decliningClients = clientGrowthList.filter((client) => client.revenueGrowth < 0).length;
     const stableClients = clientGrowthList.filter((client) => client.revenueGrowth === 0).length;
@@ -74,6 +77,7 @@ export async function GET(req: NextRequest) {
       growth: {
         salesGrowth: growth(currentPeriod.totalSales, previousPeriod.totalSales),
         revenueGrowth: growth(currentPeriod.totalRevenue, previousPeriod.totalRevenue),
+        incomeGrowth: growth(currentPeriod.totalIncome, previousPeriod.totalIncome),
         avgTicketGrowth: growth(currentPeriod.avgTicket, previousPeriod.avgTicket),
       },
       chartData: [
@@ -89,8 +93,11 @@ export async function GET(req: NextRequest) {
         repeatClients,
         repeatRate: totalClients > 0 ? Number(((repeatClients / totalClients) * 100).toFixed(2)) : 0,
         newClientsRevenue: Number(newClientsRevenue.toFixed(2)),
+        newClientsIncome: Number(newClientsIncome.toFixed(2)),
         recurringRevenue: Number(recurringRevenue.toFixed(2)),
+        recurringIncome: Number(recurringIncome.toFixed(2)),
         lostClientsRevenue: Number(lostClientsRevenue.toFixed(2)),
+        lostClientsIncome: Number(lostClientsIncome.toFixed(2)),
         growingClients,
         decliningClients,
         stableClients,
@@ -160,11 +167,13 @@ function resolvePeriods(
 function buildPeriodMetrics(items: SalesRecord[]) {
   const totalSales = items.length;
   const totalRevenue = items.reduce((sum, sale) => sum + sale.value, 0);
+  const totalIncome = items.reduce((sum, sale) => sum + sale.revenue, 0);
   const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
   return {
     totalSales,
     totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalIncome: Number(totalIncome.toFixed(2)),
     avgTicket: Number(avgTicket.toFixed(2)),
   };
 }
@@ -177,19 +186,24 @@ function buildRanking(
   const currentTotals = buildAggregationMap(currentSales, getKey);
   const previousTotals = buildAggregationMap(previousSales, getKey);
   const totalRevenue = currentSales.reduce((sum, sale) => sum + sale.value, 0);
+  const totalIncome = currentSales.reduce((sum, sale) => sum + sale.revenue, 0);
 
   return Array.from(currentTotals.entries())
     .map(([name, current]) => {
-      const previous = previousTotals.get(name) || { sales: 0, revenue: 0 };
+      const previous = previousTotals.get(name) || { sales: 0, revenue: 0, income: 0 };
       return {
         name,
         sales: current.sales,
         revenue: Number(current.revenue.toFixed(2)),
+        income: Number(current.income.toFixed(2)),
         share: totalRevenue > 0 ? Number(((current.revenue / totalRevenue) * 100).toFixed(2)) : 0,
+        incomeShare: totalIncome > 0 ? Number(((current.income / totalIncome) * 100).toFixed(2)) : 0,
         previousSales: previous.sales,
         previousRevenue: Number(previous.revenue.toFixed(2)),
+        previousIncome: Number(previous.income.toFixed(2)),
         salesGrowth: growth(current.sales, previous.sales),
         revenueGrowth: growth(current.revenue, previous.revenue),
+        incomeGrowth: growth(current.income, previous.income),
       };
     })
     .sort((a, b) => b.revenue - a.revenue)
@@ -205,6 +219,7 @@ function buildCurrentClientDetails(
   const currentMap = buildAggregationMap(currentSales, (sale) => sale.client);
   const previousMap = buildAggregationMap(previousSales, (sale) => sale.client);
   const totalRevenue = currentSales.reduce((sum, sale) => sum + sale.value, 0);
+  const totalIncome = currentSales.reduce((sum, sale) => sum + sale.revenue, 0);
   const lastPurchaseByClient = new Map<string, string>();
 
   for (const sale of currentSales) {
@@ -216,7 +231,7 @@ function buildCurrentClientDetails(
 
   return Array.from(currentMap.entries())
     .map(([name, current]) => {
-      const previous = previousMap.get(name) || { sales: 0, revenue: 0 };
+      const previous = previousMap.get(name) || { sales: 0, revenue: 0, income: 0 };
       const firstPurchaseDate = firstPurchaseByClient.get(name) || toDateKey(startDate);
       const lastPurchaseDate = lastPurchaseByClient.get(name) || toDateKey(startDate);
 
@@ -224,11 +239,15 @@ function buildCurrentClientDetails(
         name,
         sales: current.sales,
         revenue: Number(current.revenue.toFixed(2)),
+        income: Number(current.income.toFixed(2)),
         share: totalRevenue > 0 ? Number(((current.revenue / totalRevenue) * 100).toFixed(2)) : 0,
+        incomeShare: totalIncome > 0 ? Number(((current.income / totalIncome) * 100).toFixed(2)) : 0,
         previousSales: previous.sales,
         previousRevenue: Number(previous.revenue.toFixed(2)),
+        previousIncome: Number(previous.income.toFixed(2)),
         salesGrowth: growth(current.sales, previous.sales),
         revenueGrowth: growth(current.revenue, previous.revenue),
+        incomeGrowth: growth(current.income, previous.income),
         firstPurchaseDate: toDateKey(parseSheetLikeDate(firstPurchaseDate)),
         lastPurchaseDate: toDateKey(parseSheetLikeDate(lastPurchaseDate)),
       };
@@ -258,11 +277,15 @@ function buildLostClients(
       name,
       sales: 0,
       revenue: 0,
+      income: 0,
       share: 0,
+      incomeShare: 0,
       previousSales: previous.sales,
       previousRevenue: Number(previous.revenue.toFixed(2)),
+      previousIncome: Number(previous.income.toFixed(2)),
       salesGrowth: -100,
       revenueGrowth: -100,
+      incomeGrowth: -100,
       firstPurchaseDate: toDateKey(parseSheetLikeDate(firstPurchaseByClient.get(name) || lastPurchaseByClient.get(name) || new Date().toISOString())),
       lastPurchaseDate: toDateKey(parseSheetLikeDate(lastPurchaseByClient.get(name) || new Date().toISOString())),
     }))
@@ -270,13 +293,14 @@ function buildLostClients(
 }
 
 function buildAggregationMap(items: SalesRecord[], getKey: (sale: SalesRecord) => string) {
-  const map = new Map<string, { sales: number; revenue: number }>();
+  const map = new Map<string, { sales: number; revenue: number; income: number }>();
 
   for (const sale of items) {
     const key = getKey(sale);
-    const current = map.get(key) || { sales: 0, revenue: 0 };
+    const current = map.get(key) || { sales: 0, revenue: 0, income: 0 };
     current.sales += 1;
     current.revenue += sale.value;
+    current.income += sale.revenue;
     map.set(key, current);
   }
 
@@ -308,6 +332,10 @@ function countRepeatClients(items: SalesRecord[]) {
 
 function sumRevenue(items: Array<{ revenue: number }>) {
   return items.reduce((sum, item) => sum + item.revenue, 0);
+}
+
+function sumIncome(items: Array<{ income: number }>) {
+  return items.reduce((sum, item) => sum + item.income, 0);
 }
 
 function growth(current: number, previous: number) {
