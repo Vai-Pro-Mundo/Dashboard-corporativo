@@ -6,6 +6,7 @@ import { DataTable } from '@/components/DataTable';
 import { DateRangePicker } from '@/components/DateRangePicker';
 import { KpiCard } from '@/components/KpiCard';
 import { PieChartComponent } from '@/components/PieChartComponent';
+import { getDefaultDateRange, parseDateInput, toDateInputValue } from '@/lib/date-range';
 import { formatCurrency, formatDate, formatPercentage } from '@/lib/format';
 import { useSharedDateRange } from '@/lib/use-shared-date-range';
 import { ComparisonClientItem, ComparisonData, ComparisonRankingItem } from '@/types';
@@ -14,15 +15,43 @@ export default function ComparisonPage() {
   const [data, setData] = useState<ComparisonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [compareStartDate, setCompareStartDate] = useState<Date | null>(null);
+  const [compareEndDate, setCompareEndDate] = useState<Date | null>(null);
+  const [compareDraftStartDate, setCompareDraftStartDate] = useState('');
+  const [compareDraftEndDate, setCompareDraftEndDate] = useState('');
   const { startDate, endDate, setDateRange } = useSharedDateRange();
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const compareStart = parseDateInput(params.get('compareStartDate'));
+    const compareEnd = parseDateInput(params.get('compareEndDate'));
+
+    if (compareStart && compareEnd) {
+      setCompareStartDate(compareStart);
+      setCompareEndDate(compareEnd);
+      setCompareDraftStartDate(toDateInputValue(compareStart));
+      setCompareDraftEndDate(toDateInputValue(compareEnd));
+      return;
+    }
+
+    const defaults = getDefaultComparisonRange(startDate, endDate);
+    setCompareStartDate(defaults.startDate);
+    setCompareEndDate(defaults.endDate);
+    setCompareDraftStartDate(toDateInputValue(defaults.startDate));
+    setCompareDraftEndDate(toDateInputValue(defaults.endDate));
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    if (!compareStartDate || !compareEndDate) return;
+
     const fetchData = async () => {
       try {
         setLoading(true);
         const params = new URLSearchParams({
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
+          compareStartDate: compareStartDate.toISOString().split('T')[0],
+          compareEndDate: compareEndDate.toISOString().split('T')[0],
         });
         const response = await fetch(`/api/comparison?${params}`);
         const result = await response.json();
@@ -41,7 +70,7 @@ export default function ComparisonPage() {
     };
 
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, compareStartDate, compareEndDate]);
 
   const comparisonCharts = useMemo(() => {
     if (!data) return null;
@@ -52,12 +81,12 @@ export default function ComparisonPage() {
         { name: 'Atual', total: data.currentPeriod.totalRevenue },
       ],
       sales: [
-        { name: 'Anterior', total: data.previousPeriod.totalSales },
-        { name: 'Atual', total: data.currentPeriod.totalSales },
+        { name: 'Comparado', total: data.previousPeriod.totalSales },
+        { name: 'Analisado', total: data.currentPeriod.totalSales },
       ],
       ticket: [
-        { name: 'Anterior', total: data.previousPeriod.avgTicket },
-        { name: 'Atual', total: data.currentPeriod.avgTicket },
+        { name: 'Comparado', total: data.previousPeriod.avgTicket },
+        { name: 'Analisado', total: data.currentPeriod.avgTicket },
       ],
       sellers: (data.sellerRanking || []).slice(0, 8).map((item) => ({
         name: truncate(item.name, 16),
@@ -115,6 +144,19 @@ export default function ComparisonPage() {
       </div>
 
       <DateRangePicker onDateChange={setDateRange} defaultStartDate={startDate} defaultEndDate={endDate} />
+      <ComparisonRangePicker
+        startDate={compareDraftStartDate}
+        endDate={compareDraftEndDate}
+        onStartDateChange={setCompareDraftStartDate}
+        onEndDateChange={setCompareDraftEndDate}
+        onApply={() => {
+          const nextStart = new Date(`${compareDraftStartDate}T00:00:00`);
+          const nextEnd = new Date(`${compareDraftEndDate}T00:00:00`);
+          setCompareStartDate(nextStart);
+          setCompareEndDate(nextEnd);
+          writeComparisonRangeToUrl(compareDraftStartDate, compareDraftEndDate);
+        }}
+      />
 
       {loading && <div className="py-8 text-center text-cyan-100/70">Carregando dados...</div>}
       {error && <div className="rounded border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100">{error}</div>}
@@ -173,20 +215,20 @@ export default function ComparisonPage() {
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <BarChartComponent
               data={comparisonCharts.revenue}
-              title="Faturamento: atual x anterior"
+              title="Faturamento: periodo analisado x comparado"
               bars={[{ key: 'total', label: 'Faturamento', color: '#10B981' }]}
               formatYAxis="currency"
               height={300}
             />
             <BarChartComponent
               data={comparisonCharts.sales}
-              title="Vendas: atual x anterior"
+              title="Vendas: periodo analisado x comparado"
               bars={[{ key: 'total', label: 'Vendas', color: '#38BDF8' }]}
               height={300}
             />
             <BarChartComponent
               data={comparisonCharts.ticket}
-              title="Ticket medio: atual x anterior"
+              title="Ticket medio: periodo analisado x comparado"
               bars={[{ key: 'total', label: 'Ticket medio', color: '#FBBF24' }]}
               formatYAxis="currency"
               height={300}
@@ -235,6 +277,74 @@ export default function ComparisonPage() {
           <DataTable<ComparisonClientItem> data={data.recurringClientsList} columns={recurringClientColumns} title="Clientes recorrentes no periodo" />
         </>
       )}
+    </div>
+  );
+}
+
+function getDefaultComparisonRange(startDate: Date, endDate: Date) {
+  const inclusiveDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
+  const previousEndDate = new Date(startDate);
+  previousEndDate.setDate(previousEndDate.getDate() - 1);
+  const previousStartDate = new Date(previousEndDate);
+  previousStartDate.setDate(previousStartDate.getDate() - inclusiveDays + 1);
+
+  return {
+    startDate: previousStartDate,
+    endDate: previousEndDate,
+  };
+}
+
+function writeComparisonRangeToUrl(compareStartDate: string, compareEndDate: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('compareStartDate', compareStartDate);
+  url.searchParams.set('compareEndDate', compareEndDate);
+  window.history.replaceState(null, '', `${url.pathname}?${url.searchParams.toString()}`);
+}
+
+function ComparisonRangePicker({
+  startDate,
+  endDate,
+  onStartDateChange,
+  onEndDateChange,
+  onApply,
+}: {
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (value: string) => void;
+  onEndDateChange: (value: string) => void;
+  onApply: () => void;
+}) {
+  return (
+    <div className="space-y-4 rounded border border-amber-300/20 bg-[#0B2440] p-4 shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">Periodo comparado</p>
+        <p className="mt-1 text-sm text-cyan-100/60">Escolha manualmente o segundo periodo para a comparacao. Exemplo: 1 trimestre de 2025 contra 1 trimestre de 2026.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data Inicial Comparada</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => onStartDateChange(e.target.value)}
+            className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+          />
+        </div>
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-cyan-100/70">Data Final Comparada</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => onEndDateChange(e.target.value)}
+            className="w-full rounded border border-cyan-400/20 bg-[#07182D] px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <button onClick={onApply} className="rounded bg-amber-300 px-4 py-2 text-sm font-bold text-[#061427] transition-colors hover:bg-amber-200">
+          Aplicar Comparacao
+        </button>
+      </div>
     </div>
   );
 }

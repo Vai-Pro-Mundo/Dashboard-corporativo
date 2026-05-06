@@ -19,7 +19,14 @@ export async function GET(req: NextRequest) {
 
     const requestedStartDate = req.nextUrl.searchParams.get('startDate');
     const requestedEndDate = req.nextUrl.searchParams.get('endDate');
-    const { startDate, endDate, previousStartDate, previousEndDate } = resolvePeriods(requestedStartDate, requestedEndDate);
+    const requestedCompareStartDate = req.nextUrl.searchParams.get('compareStartDate');
+    const requestedCompareEndDate = req.nextUrl.searchParams.get('compareEndDate');
+    const { startDate, endDate, previousStartDate, previousEndDate } = resolvePeriods(
+      requestedStartDate,
+      requestedEndDate,
+      requestedCompareStartDate,
+      requestedCompareEndDate
+    );
 
     const currentSales = filterSalesByDateRange(allSales, toDateKey(startDate), toDateKey(endDate));
     const previousSales = filterSalesByDateRange(allSales, toDateKey(previousStartDate), toDateKey(previousEndDate));
@@ -98,7 +105,12 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function resolvePeriods(startValue: string | null, endValue: string | null) {
+function resolvePeriods(
+  startValue: string | null,
+  endValue: string | null,
+  compareStartValue?: string | null,
+  compareEndValue?: string | null
+) {
   const endDate = endValue ? parseLocalDate(endValue) : new Date();
   endDate.setHours(23, 59, 59, 999);
 
@@ -107,14 +119,24 @@ function resolvePeriods(startValue: string | null, endValue: string | null) {
     : new Date(endDate.getFullYear(), endDate.getMonth() - 1, endDate.getDate());
   startDate.setHours(0, 0, 0, 0);
 
-  const inclusiveDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
-  const previousEndDate = new Date(startDate);
-  previousEndDate.setDate(previousEndDate.getDate() - 1);
-  previousEndDate.setHours(23, 59, 59, 999);
+  let previousStartDate: Date;
+  let previousEndDate: Date;
 
-  const previousStartDate = new Date(previousEndDate);
-  previousStartDate.setDate(previousStartDate.getDate() - inclusiveDays + 1);
-  previousStartDate.setHours(0, 0, 0, 0);
+  if (compareStartValue && compareEndValue) {
+    previousStartDate = parseLocalDate(compareStartValue);
+    previousStartDate.setHours(0, 0, 0, 0);
+    previousEndDate = parseLocalDate(compareEndValue);
+    previousEndDate.setHours(23, 59, 59, 999);
+  } else {
+    const inclusiveDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 86400000) + 1);
+    previousEndDate = new Date(startDate);
+    previousEndDate.setDate(previousEndDate.getDate() - 1);
+    previousEndDate.setHours(23, 59, 59, 999);
+
+    previousStartDate = new Date(previousEndDate);
+    previousStartDate.setDate(previousStartDate.getDate() - inclusiveDays + 1);
+    previousStartDate.setHours(0, 0, 0, 0);
+  }
 
   return { startDate, endDate, previousStartDate, previousEndDate };
 }
