@@ -121,22 +121,6 @@ export default function ComparisonPage() {
 
       {data && comparisonCharts && !loading && !error && (
         <>
-          <div className="rounded border border-cyan-400/15 bg-[#0B2440] p-6 shadow-[0_14px_35px_rgba(0,0,0,0.24)]">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded border border-slate-500/30 bg-slate-950/25 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Periodo anterior</p>
-                <p className="mt-2 text-2xl font-bold text-white">{data.previousPeriodRange?.label || 'Nao informado'}</p>
-              </div>
-              <div className="rounded border border-emerald-300/30 bg-emerald-400/10 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">Periodo selecionado</p>
-                <p className="mt-2 text-2xl font-bold text-white">{data.currentPeriodRange?.label || data.period}</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-cyan-100/60">
-              Toda a leitura abaixo usa o intervalo que voce escolheu acima, e tambem mostra a variacao contra o periodo imediatamente anterior.
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <KpiCard title="Clientes novos" value={data.summary.newClients} subtitle={`Faturamento: ${formatCurrency(data.summary.newClientsRevenue)}`} />
             <KpiCard title="Clientes recorrentes" value={data.summary.recurringClients} subtitle={`Faturamento: ${formatCurrency(data.summary.recurringRevenue)}`} />
