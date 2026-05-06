@@ -47,6 +47,7 @@ export default function ClientsPage() {
     const totalIncome = data.reduce((sum, client) => sum + client.totalIncome, 0);
     const totalPurchases = data.reduce((sum, client) => sum + client.totalPurchases, 0);
     const topClient = data[0];
+    const mostRecurringClient = [...data].sort((a, b) => b.totalPurchases - a.totalPurchases)[0];
 
     return {
       totalSpent,
@@ -54,6 +55,7 @@ export default function ClientsPage() {
       totalPurchases,
       avgTicket: totalPurchases > 0 ? totalSpent / totalPurchases : 0,
       topClient,
+      mostRecurringClient,
     };
   }, [data]);
 
@@ -63,6 +65,14 @@ export default function ClientsPage() {
     receita: client.totalIncome,
     compras: client.totalPurchases,
   }));
+
+  const recurrenceRanking = useMemo(
+    () =>
+      [...data]
+        .sort((a, b) => b.totalPurchases - a.totalPurchases || b.totalSpent - a.totalSpent)
+        .slice(0, 10),
+    [data]
+  );
 
   const columns = [
     { key: 'name' as const, label: 'Nome do Cliente', width: '24%' },
@@ -93,10 +103,18 @@ export default function ClientsPage() {
             <KpiCard title="Compras" value={summary.totalPurchases} subtitle="Quantidade de vendas" />
             <KpiCard title="Faturamento" value={formatCurrency(summary.totalSpent)} subtitle={`Ticket: ${formatCurrency(summary.avgTicket)}`} />
             <KpiCard title="Receita" value={formatCurrency(summary.totalIncome)} subtitle="Receita total no periodo" />
-            <KpiCard title="Melhor Cliente" value={summary.topClient?.name || '-'} subtitle={summary.topClient ? formatCurrency(summary.topClient.totalSpent) : 'Sem dados'} />
+            <KpiCard
+              title="Mais Recorrente"
+              value={summary.mostRecurringClient?.name || '-'}
+              subtitle={
+                summary.mostRecurringClient
+                  ? `${summary.mostRecurringClient.totalPurchases} compras | ${formatCurrency(summary.mostRecurringClient.totalSpent)}`
+                  : 'Sem dados'
+              }
+            />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <BarChartComponent
               data={chartData}
               title="Top clientes por faturamento e receita"
@@ -108,6 +126,17 @@ export default function ClientsPage() {
               height={350}
             />
             <BarChartComponent data={chartData} title="Top clientes por quantidade de compras" bars={[{ key: 'compras', label: 'Compras', color: '#38BDF8' }]} height={350} />
+            <DataTable
+              data={recurrenceRanking}
+              title="Ranking de recorrencia"
+              maxHeight="350px"
+              columns={[
+                { key: 'name' as const, label: 'Cliente', width: '36%' },
+                { key: 'totalPurchases' as const, label: 'Compras', render: (value: number) => value },
+                { key: 'totalSpent' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
+                { key: 'totalIncome' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+              ]}
+            />
           </div>
 
           <DataTable data={data} columns={columns} title={`Total: ${data.length} clientes`} />
