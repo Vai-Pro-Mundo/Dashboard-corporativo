@@ -132,6 +132,39 @@ export interface ComparisonData {
     avgTicketGrowth: number;
   };
   chartData: Array<{ name: string; anterior: number; atual: number }>;
+  summary: {
+    totalClients: number;
+    newClients: number;
+    recurringClients: number;
+    repeatClients: number;
+    repeatRate: number;
+    newClientsRevenue: number;
+    recurringRevenue: number;
+  };
+  topSeller: ComparisonRankingItem | null;
+  topProduct: ComparisonRankingItem | null;
+  topClient: ComparisonRankingItem | null;
+  sellerRanking: ComparisonRankingItem[];
+  productRanking: ComparisonRankingItem[];
+  newClientsList: ComparisonClientItem[];
+  recurringClientsList: ComparisonClientItem[];
+  clientMix: Array<{ name: string; value: number; revenue: number }>;
+}
+
+export interface ComparisonRankingItem {
+  name: string;
+  sales: number;
+  revenue: number;
+  share: number;
+  previousSales: number;
+  previousRevenue: number;
+  salesGrowth: number;
+  revenueGrowth: number;
+}
+
+export interface ComparisonClientItem extends ComparisonRankingItem {
+  firstPurchaseDate: string;
+  lastPurchaseDate: string;
 }
 
 export interface RawSaleData extends CorporateSale {
