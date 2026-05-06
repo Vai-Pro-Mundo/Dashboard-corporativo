@@ -403,7 +403,7 @@ function InsightCard({
         <MiniMetric label="Faturamento" value={formatCurrency(item?.revenue || 0)} />
         <MiniMetric label="Vendas" value={String(item?.sales || 0)} />
         <MiniMetric label={subtitleLabel} value={formatPercentage(item?.share || 0)} />
-        <MiniMetric label="Vs anterior" value={formatPercentage(item?.revenueGrowth || 0)} highlight={item?.revenueGrowth || 0} />
+        <MiniMetric label="Crescimento vs periodo comparado" value={formatPercentage(item?.revenueGrowth || 0)} highlight={item?.revenueGrowth || 0} />
       </div>
     </div>
   );
