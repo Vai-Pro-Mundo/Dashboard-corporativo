@@ -84,8 +84,12 @@ export interface ClientsData {
   totalSpent: number;
   totalIncome: number;
   avgTicket: number;
-  lastPurchaseDate: Date;
+  margemPercent: number;
+  firstPurchaseDate: string | null;
+  lastPurchaseDate: string;
   productsCount: number;
+  destinoLider: string;
+  tipo: string;
   status: string;
 }
 

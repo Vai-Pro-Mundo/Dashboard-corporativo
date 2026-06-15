@@ -16,15 +16,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch data from Google Sheets
     const { headers, data } = await getGoogleSheetsData(spreadsheetId, sheetGid, apiKey);
-    const allSales = filterSalesByDateRange(
-      parseSalesData(data, headers),
-      req.nextUrl.searchParams.get('startDate'),
-      req.nextUrl.searchParams.get('endDate')
-    );
-    // Group by client
-    const clientMap = allSales.reduce((acc: Record<string, any>, sale) => {
+    const allParsed = parseSalesData(data, headers);
+
+    const startDateParam = req.nextUrl.searchParams.get('startDate');
+    const endDateParam = req.nextUrl.searchParams.get('endDate');
+    const periodSales = filterSalesByDateRange(allParsed, startDateParam, endDateParam);
+
+    // Historical sales before the period start (to classify Novo vs Recorrente)
+    const beforePeriodSales = startDateParam
+      ? allParsed.filter((s) => new Date(s.date) < new Date(startDateParam))
+      : [];
+    const historicalCountByClient: Record<string, number> = {};
+    for (const sale of beforePeriodSales) {
+      historicalCountByClient[sale.client] = (historicalCountByClient[sale.client] || 0) + 1;
+    }
+
+    // Earliest purchase date ever for each client
+    const firstPurchaseByClient: Record<string, Date> = {};
+    for (const sale of allParsed) {
+      const d = new Date(sale.date);
+      if (!firstPurchaseByClient[sale.client] || d < firstPurchaseByClient[sale.client]) {
+        firstPurchaseByClient[sale.client] = d;
+      }
+    }
+
+    // Group by client within the period
+    const clientMap = periodSales.reduce((acc: Record<string, any>, sale) => {
       if (!acc[sale.client]) {
         acc[sale.client] = {
           name: sale.client,
@@ -33,32 +51,50 @@ export async function GET(req: NextRequest) {
           totalIncome: 0,
           lastPurchaseDate: new Date(0),
           products: new Set(),
+          destinations: {} as Record<string, number>,
         };
       }
-      acc[sale.client].totalPurchases++;
-      acc[sale.client].totalSpent += sale.value;
-      acc[sale.client].totalIncome += sale.revenue;
-      acc[sale.client].products.add(sale.product);
+      const c = acc[sale.client];
+      c.totalPurchases++;
+      c.totalSpent += sale.value;
+      c.totalIncome += sale.revenue;
+      c.products.add(sale.product);
       const saleDate = new Date(sale.date);
-      if (saleDate > acc[sale.client].lastPurchaseDate) {
-        acc[sale.client].lastPurchaseDate = saleDate;
+      if (saleDate > c.lastPurchaseDate) c.lastPurchaseDate = saleDate;
+      if (sale.destination) {
+        c.destinations[sale.destination] = (c.destinations[sale.destination] || 0) + 1;
       }
       return acc;
     }, {});
 
-    // Convert to array and sort by spending
     const clientsData = Object.values(clientMap)
-      .map((c: any) => ({
-        id: c.name.replace(/\s+/g, '-').toLowerCase(),
-        name: c.name,
-        totalPurchases: c.totalPurchases,
-        totalSpent: parseFloat(c.totalSpent.toFixed(2)),
-        totalIncome: parseFloat(c.totalIncome.toFixed(2)),
-        avgTicket: c.totalPurchases > 0 ? parseFloat((c.totalSpent / c.totalPurchases).toFixed(2)) : 0,
-        lastPurchaseDate: c.lastPurchaseDate.toISOString(),
-        productsCount: c.products.size,
-        status: 'ACTIVE',
-      }))
+      .map((c: any) => {
+        const historicalCount = historicalCountByClient[c.name] || 0;
+        const tipo = historicalCount > 0 ? `Recorrente (${historicalCount} antes)` : 'Novo';
+        const destinoLider = Object.keys(c.destinations).length > 0
+          ? Object.entries(c.destinations as Record<string, number>).sort((a, b) => b[1] - a[1])[0][0]
+          : '-';
+        const margemPercent = c.totalSpent > 0
+          ? parseFloat(((c.totalIncome / c.totalSpent) * 100).toFixed(1))
+          : 0;
+        const firstPurchase = firstPurchaseByClient[c.name];
+
+        return {
+          id: c.name.replace(/\s+/g, '-').toLowerCase(),
+          name: c.name,
+          totalPurchases: c.totalPurchases,
+          totalSpent: parseFloat(c.totalSpent.toFixed(2)),
+          totalIncome: parseFloat(c.totalIncome.toFixed(2)),
+          avgTicket: c.totalPurchases > 0 ? parseFloat((c.totalSpent / c.totalPurchases).toFixed(2)) : 0,
+          margemPercent,
+          firstPurchaseDate: firstPurchase ? firstPurchase.toISOString() : null,
+          lastPurchaseDate: c.lastPurchaseDate.toISOString(),
+          productsCount: c.products.size,
+          destinoLider,
+          tipo,
+          status: 'ACTIVE',
+        };
+      })
       .sort((a: any, b: any) => b.totalSpent - a.totalSpent);
 
     return NextResponse.json(clientsData);

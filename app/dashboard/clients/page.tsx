@@ -75,13 +75,17 @@ export default function ClientsPage() {
   );
 
   const columns = [
-    { key: 'name' as const, label: 'Nome do Cliente', width: '24%' },
+    { key: 'name' as const, label: 'Nome do Cliente', width: '20%' },
     { key: 'totalPurchases' as const, label: 'Total de Compras', render: (value: number) => value },
+    { key: 'tipo' as const, label: 'Tipo', render: (value: string) => value },
     { key: 'totalSpent' as const, label: 'Faturamento', render: (value: number) => formatCurrency(value) },
     { key: 'totalIncome' as const, label: 'Receita', render: (value: number) => formatCurrency(value) },
+    { key: 'margemPercent' as const, label: 'Margem %', render: (value: number) => `${value}%` },
     { key: 'avgTicket' as const, label: 'Ticket Medio', render: (value: number) => formatCurrency(value) },
     { key: 'productsCount' as const, label: 'Produtos Diferentes', render: (value: number) => value },
-    { key: 'lastPurchaseDate' as const, label: 'Ultima Compra', render: (value: Date) => formatDate(value) },
+    { key: 'firstPurchaseDate' as const, label: 'Primeira Compra', render: (value: string | null) => value ? formatDate(value) : '-' },
+    { key: 'lastPurchaseDate' as const, label: 'Ultima Compra', render: (value: string) => formatDate(value) },
+    { key: 'destinoLider' as const, label: 'Destino Lider', render: (value: string) => value },
   ];
 
   return (
@@ -139,7 +143,7 @@ export default function ClientsPage() {
             />
           </div>
 
-          <DataTable data={data} columns={columns} title={`Total: ${data.length} clientes`} />
+          <DataTable data={data} columns={columns} title={`Ranking geral de clientes: ${data.length}`} />
         </>
       )}
     </div>
