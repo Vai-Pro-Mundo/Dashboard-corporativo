@@ -304,6 +304,24 @@ function indexFor(headers: any[], candidates: string[], fallbackIndex: number) {
   return index >= 0 ? index : fallbackIndex;
 }
 
+// Some clients appear under slightly different legal/branch names but are the
+// same company. Collapse those variations into a single canonical name so all
+// dashboards (overview, clients, comparison, raw) aggregate them together.
+const CLIENT_ALIASES: Array<{ match: RegExp; canonical: string }> = [
+  { match: /fasa/i, canonical: 'FASA' },
+  { match: /tecmedic/i, canonical: 'Tecmedic' },
+  { match: /segula/i, canonical: 'Segula' },
+];
+
+function canonicalizeClient(name: string) {
+  for (const { match, canonical } of CLIENT_ALIASES) {
+    if (match.test(name)) {
+      return canonical;
+    }
+  }
+  return name;
+}
+
 export function parseSalesData(rows: any[], headers: any[] = []): SalesRecord[] {
   const saleNumberIndex = indexFor(headers, ['venda nº', 'venda no', 'venda numero', 'numero venda', 'id'], 0);
   const dateIndex = indexFor(headers, ['data venda', 'data', 'date', 'datavenda', 'data da venda'], 1);
@@ -335,7 +353,7 @@ export function parseSalesData(rows: any[], headers: any[] = []): SalesRecord[] 
         saleNumber: normalizeText(row[saleNumberIndex]),
         date: saleDate.toISOString(),
         seller: normalizeText(row[sellerIndex]),
-        client: normalizeText(row[clientIndex]),
+        client: canonicalizeClient(normalizeText(row[clientIndex])),
         product: normalizeText(row[productIndex]),
         supplier: normalizeText(row[supplierIndex]),
         startDate: startDate.toISOString(),
